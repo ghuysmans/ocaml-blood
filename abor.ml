@@ -6,6 +6,12 @@ module ABO = struct
     | O : ([`Nil], [`Nil], [< `A | `Nil], [< `B | `Nil]) t
 
   let compatible (d : ('a, 'b, _, _) t) (r : (_, _, 'a, 'b) t) = ()
+
+  let to_string : type a b c d. (a, b, c, d) t -> string = function
+    | A -> "A"
+    | B -> "B"
+    | AB -> "AB"
+    | O -> "O"
 end
 
 module Rh = struct
@@ -14,11 +20,18 @@ module Rh = struct
     | N : ([`Nil], [`Nil]) t
 
   let compatible (d : ('a, _) t) (r : (_, 'a) t) = ()
+
+  let to_string : type d r. (d, r) t -> string = function
+    | P -> "+"
+    | N -> "-"
 end
 
 type ('d_a, 'd_b, 'd_d, 'r_a, 'r_b, 'r_d) t =
   ('d_a, 'd_b, 'r_a, 'r_b) ABO.t *
   ('d_d, 'r_d) Rh.t
+
+let to_string : type a b c d e f. (a, b, c, d, e, f) t -> string = fun (x, y) ->
+  ABO.to_string x ^ Rh.to_string y
 
 let ap = ABO.A, Rh.P
 let bp = ABO.B, Rh.P
