@@ -1,29 +1,19 @@
-module Donor = struct
-  type ('a, 'b) t =
-    | A : ([`A], [`Nil]) t
-    | B : ([`Nil], [`B]) t
-    | AB : ([`A], [`B]) t
-    | O : ([`Nil], [`Nil]) t
-end
+type ('d_a, 'd_b, 'r_a, 'r_b) t =
+  | A : ([`A], [`Nil], [< `A | `Nil], [`Nil]) t
+  | B : ([`Nil], [`B], [`Nil], [< `B | `Nil]) t
+  | AB : ([`A], [`B], [< `A | `Nil], [< `B | `Nil]) t
+  | O : ([`Nil], [`Nil], [< `A | `Nil], [< `B | `Nil]) t
 
-module Recipient = struct
-  type ('a, 'b) t =
-    | A : ([< `A | `Nil], [`Nil]) t
-    | B : ([`Nil], [< `B | `Nil]) t
-    | AB : ([< `A | `Nil], [< `B | `Nil]) t
-    | O : ([< `A | `Nil], [< `B | `Nil]) t
-end
-
-let compatible (d : ('a, 'b) Donor.t) (r : ('a, 'b) Recipient.t) = ()
+let compatible (d : ('a, 'b, _, _) t) (r : (_, _, 'a, 'b) t) = ()
 
 
 let () =
-  compatible Donor.O Recipient.O;
-  compatible Donor.O Recipient.A;
-  compatible Donor.O Recipient.B;
-  compatible Donor.O Recipient.AB;
-  compatible Donor.A Recipient.A;
-  compatible Donor.A Recipient.AB;
-  compatible Donor.B Recipient.B;
-  compatible Donor.B Recipient.AB;
-  compatible Donor.AB Recipient.AB;
+  compatible O O;
+  compatible O A;
+  compatible O B;
+  compatible O AB;
+  compatible A A;
+  compatible A AB;
+  compatible B B;
+  compatible B AB;
+  compatible AB AB;
