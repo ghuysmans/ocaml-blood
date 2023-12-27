@@ -1,25 +1,25 @@
 include Pair.Make (ABO) (Rh)
 
-let ap = P (ABO.A, Rh.P)
+let ap = cons ABO.a Rh.p
 (** A+ *)
 
-let bp = P (ABO.B, Rh.P)
+let bp = cons ABO.b Rh.p
 (** B+ *)
 
-let abp = P (ABO.AB, Rh.P)
+let abp = cons ABO.ab Rh.p
 (** AB+ *)
 
-let op = P (ABO.O, Rh.P)
+let op = cons ABO.o Rh.p
 (** O+ *)
 
-let an = P (ABO.A, Rh.N)
+let an = cons ABO.a Rh.n
 (** A- *)
 
-let bn = P (ABO.B, Rh.N)
+let bn = cons ABO.b Rh.n
 (** B- *)
 
-let abn = P (ABO.AB, Rh.N)
+let abn = cons ABO.ab Rh.n
 (** AB- *)
 
-let on = P (ABO.O, Rh.N)
+let on = cons ABO.o Rh.n
 (** O- *)

@@ -10,7 +10,7 @@ let () =
     let donor = f donor in
     let recipient = f recipient in
     print_endline @@
-      if List.mem (donor, recipient) P.compatible' then
+      if ABOR.compatible ~donor ~recipient then
         "compatible"
       else
         "incompatible"

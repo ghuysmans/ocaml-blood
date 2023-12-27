@@ -1,17 +1,19 @@
-type (_, _) t =
-  | P : ([`D], [< `D | `Nil]) t (** + *)
-  | N : ([`Nil], [`Nil]) t (** - *)
+type (_, _) t = int
 
-type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
+let bits = 1
 
-let compatible =
-  let compatible donor recipient = C {donor; recipient} in
-  [
-    compatible P P;
-    compatible N P;
-    compatible N N;
-  ]
+let p : ([`D], [< `D | `Nil]) t = 1
+(** + *)
 
-let to_string : type d r. (d, r) t -> string = function
-  | P -> "+"
-  | N -> "-"
+let n : ([`Nil], [`Nil]) t = 0
+(** - *)
+
+let compatible ~(donor: ('x, _) t) ~(recipient: (_, 'x) t) =
+  lnot donor lor recipient = -1
+
+let to_string : type d r. (d, r) t -> string =
+  Array.get [| "-"; "+" |]
+
+let groups =
+  [p; n] |>
+  List.map (fun x -> to_string x, x)
