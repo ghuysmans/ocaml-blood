@@ -58,14 +58,15 @@ module Rh = struct
     | N -> "-"
 end
 
-(* FIXME make it compatible with S to allow using the isomorphism:
+(* TODO try the isomorphism:
 module ABO = Pair (Rh) (Rh)
 module ABOR = Pair (ABO) (Rh)
 *)
-module Pair (A : S) (B : S) = struct
-  type ('d, 'r) t = ('da, 'ra) A.t * ('db, 'rb) B.t
-  constraint 'd = 'da * 'db
-  constraint 'r = 'ra * 'rb
+module Pair (A : S) (B : S) : sig
+  type (_, _) t = P : ('da, 'ra) A.t * ('db, 'rb) B.t -> ('da*'db, 'ra*'rb) t
+  include S with type ('d, 'r) t := ('d, 'r) t
+end = struct
+  type (_, _) t = P : ('da, 'ra) A.t * ('db, 'rb) B.t -> ('da*'db, 'ra*'rb) t
 
   type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
 
@@ -74,24 +75,24 @@ module Pair (A : S) (B : S) = struct
     List.concat @@
     List.map (fun (A.C {donor; recipient}) ->
       List.map (fun (B.C {donor=d'; recipient=r'}) ->
-        C {donor = donor, d'; recipient = recipient, r'}
+        C {donor = P (donor, d'); recipient = P (recipient, r')}
       ) B.compatible
     ) A.compatible
 
-  let to_string : (_, _) t -> string = fun (a, b) ->
+  let to_string : type d r. (d, r) t -> string = fun (P (a, b)) ->
     A.to_string a ^ B.to_string b
 end
 
 module G = struct
   include Pair (ABO) (Rh)
-  let ap = ABO.A, Rh.P (** A+ *)
-  let bp = ABO.B, Rh.P (** B+ *)
-  let abp = ABO.AB, Rh.P (** AB+ *)
-  let op = ABO.O, Rh.P (** O+ *)
-  let an = ABO.A, Rh.N (** A- *)
-  let bn = ABO.B, Rh.N (** B- *)
-  let abn = ABO.AB, Rh.N (** AB- *)
-  let on = ABO.O, Rh.N (** O- *)
+  let ap = P (ABO.A, Rh.P) (** A+ *)
+  let bp = P (ABO.B, Rh.P) (** B+ *)
+  let abp = P (ABO.AB, Rh.P) (** AB+ *)
+  let op = P (ABO.O, Rh.P) (** O+ *)
+  let an = P (ABO.A, Rh.N) (** A- *)
+  let bn = P (ABO.B, Rh.N) (** B- *)
+  let abn = P (ABO.AB, Rh.N) (** AB- *)
+  let on = P (ABO.O, Rh.N) (** O- *)
 end
 
 let dump (module G : S) =
