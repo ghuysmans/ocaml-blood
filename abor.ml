@@ -1,13 +1,18 @@
-module ABO = struct
-  type ('d_a, 'd_b, 'r_a, 'r_b) t =
-    | A : ([`A], [`Nil], [< `A | `Nil], [`Nil]) t
-    | B : ([`Nil], [`B], [`Nil], [< `B | `Nil]) t
-    | AB : ([`A], [`B], [< `A | `Nil], [< `B | `Nil]) t
-    | O : ([`Nil], [`Nil], [< `A | `Nil], [< `B | `Nil]) t
+module type S = sig
+  type ('donor, 'recipient) t
+  type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
+  val compatible : c list
+  val to_string : _ t -> string
+end
 
-  type c =
-    C : {donor:     ('a, 'b, _, _) t;
-         recipient: (_, _, 'a, 'b) t} -> c
+module ABO = struct
+  type (_, _) t =
+    | A : ([`A] * [`Nil], [< `A | `Nil] * [`Nil]) t
+    | B : ([`Nil] * [`B], [`Nil] * [< `B | `Nil]) t
+    | AB : ([`A] * [`B], [< `A | `Nil] * [< `B | `Nil]) t
+    | O : ([`Nil] * [`Nil], [< `A | `Nil] * [< `B | `Nil]) t
+
+  type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
 
   let compatible =
     let compatible donor recipient = C {donor; recipient} in
@@ -26,7 +31,7 @@ module ABO = struct
       compatible B B;
     ]
 
-  let to_string : type a b c d. (a, b, c, d) t -> string = function
+  let to_string : type d r. (d, r) t -> string = function
     | A -> "A"
     | B -> "B"
     | AB -> "AB"
@@ -34,13 +39,11 @@ module ABO = struct
 end
 
 module Rh = struct
-  type ('d, 'r) t =
-    | P : ([`D], [< `D | `Nil]) t
-    | N : ([`Nil], [`Nil]) t
+  type (_, _) t =
+    | P : ([`D], [< `D | `Nil]) t (** + *)
+    | N : ([`Nil], [`Nil]) t (** - *)
 
-  type c =
-    C : {donor:     ('a, _) t;
-         recipient: (_, 'a) t} -> c
+  type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
 
   let compatible =
     let compatible donor recipient = C {donor; recipient} in
@@ -55,59 +58,50 @@ module Rh = struct
     | N -> "-"
 end
 
-type ('d_a, 'd_b, 'd_d, 'r_a, 'r_b, 'r_d) t =
-  ('d_a, 'd_b, 'r_a, 'r_b) ABO.t *
-  ('d_d, 'r_d) Rh.t
+(* FIXME make it compatible with S to allow using the isomorphism:
+module ABO = Pair (Rh) (Rh)
+module ABOR = Pair (ABO) (Rh)
+*)
+module Pair (A : S) (B : S) = struct
+  type ('d, 'r) t = ('da, 'ra) A.t * ('db, 'rb) B.t
+  constraint 'd = 'da * 'db
+  constraint 'r = 'ra * 'rb
 
-let to_string : type a b c d e f. (a, b, c, d, e, f) t -> string = fun (x, y) ->
-  ABO.to_string x ^ Rh.to_string y
+  type c = C : {donor: ('x, _) t; recipient: (_, 'x) t} -> c
 
-let ap = ABO.A, Rh.P
-let bp = ABO.B, Rh.P
-let abp = ABO.AB, Rh.P
-let op = ABO.O, Rh.P
-let an = ABO.A, Rh.N
-let bn = ABO.B, Rh.N
-let abn = ABO.AB, Rh.N
-let on = ABO.O, Rh.N
+  let compatible =
+    (* full product *)
+    List.concat @@
+    List.map (fun (A.C {donor; recipient}) ->
+      List.map (fun (B.C {donor=d'; recipient=r'}) ->
+        C {donor = donor, d'; recipient = recipient, r'}
+      ) B.compatible
+    ) A.compatible
 
-type c =
-  C : {donor:     ('a, 'b, 'd, _, _, _) t;
-       recipient: (_, _, _, 'a, 'b, 'd) t} -> c
+  let to_string : (_, _) t -> string = fun (a, b) ->
+    A.to_string a ^ B.to_string b
+end
 
-let compatible =
-  let compatible donor recipient = C {donor; recipient} in
-  [
-    (* universal donor *)
-    compatible on on;
-    compatible on an;
-    compatible on bn;
-    (* universal recipient *)
-    compatible on abn;
-    compatible an abn;
-    compatible bn abn;
-    compatible abn abn;
-    (* meh *)
-    compatible an an;
-    compatible bn bn;
-    (* same for Rh *)
-    compatible op op;
-    compatible op ap;
-    compatible op bp;
-    compatible op abp;
-    compatible ap ap;
-    compatible ap abp;
-    compatible bp bp;
-    compatible bp abp;
-    compatible abp abp;
-    (* Rh- -> Rh+ *)
-    compatible on op;
-    compatible on ap;
-    compatible on bp;
-    compatible on abp;
-    compatible an ap;
-    compatible an abp;
-    compatible bn bp;
-    compatible bn abp;
-    compatible abn abp;
-  ]
+module G = struct
+  include Pair (ABO) (Rh)
+  let ap = ABO.A, Rh.P (** A+ *)
+  let bp = ABO.B, Rh.P (** B+ *)
+  let abp = ABO.AB, Rh.P (** AB+ *)
+  let op = ABO.O, Rh.P (** O+ *)
+  let an = ABO.A, Rh.N (** A- *)
+  let bn = ABO.B, Rh.N (** B- *)
+  let abn = ABO.AB, Rh.N (** AB- *)
+  let on = ABO.O, Rh.N (** O- *)
+end
+
+let dump (module G : S) =
+  let open G in
+  Printf.printf "digraph {\n";
+  List.iter (fun (C {donor; recipient}) ->
+    Printf.printf "%S -> %S\n" (to_string donor) (to_string recipient)
+  ) compatible;
+  Printf.printf "}\n"
+
+
+let () =
+  dump (module ABO);
